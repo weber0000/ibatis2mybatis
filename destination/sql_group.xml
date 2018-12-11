@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sql_group">
+   <resultMap id="groupResult" class="groupBean">
+      <result column="id" property="id" jdbcType="BIGINT"/>
+      <result column="groupCode" property="groupcode" jdbcType="VARCHAR"/>
+      <result column="groupName" property="groupname" jdbcType="VARCHAR"/>
+      <result column="createTime" property="createtime" jdbcType="TIMESTAMP"/>
+      <result column="creater" property="creater" jdbcType="VARCHAR"/>
+      <result column="groupPhone" property="groupphone" jdbcType="VARCHAR"/>
+      <result column="principal" property="principal" jdbcType="VARCHAR"/>
+      <result column="url" property="url" jdbcType="VARCHAR"/>
+      <result column="principalPhone" property="principalphone" jdbcType="VARCHAR"/>
+      <result column="updatefile_id" property="updatefile_id" jdbcType="BIGINT"/>
+      <result column="sVersion_no" property="sVersion_no" jdbcType="VARCHAR"/>
+      <result property="num" column="num"/>
+   </resultMap>
+   <select id="getGroup" parameterType="java.util.HashMap" resultType="groupBean">
+    select t1.id,t1.groupCode,t1.groupName,t1.groupPhone,t1.principal,t1.principalPhone,t1.url,t1.createTime,t1.creater,t1.updatefile_id,t1.sVersion_no,
+    t1.introduction,t1.position,t1.joinPolicy,t1.ischain
+    FROM tgroup t1 
+ 	
+      <where>
+         <if test="groupCode!=null"> and    
+			t1.groupCode =#{groupCode}  
+	</if>
+         <if test="updatefile_id!=null"> and    
+			t1.updatefile_id =#{updatefile_id}  
+	</if>
+      </where>
+   </select>
+   <select id="getNewsList" parameterType="newsBean" resultType="newsBean">
+      select t1.id,t1.title,t1.groupCode,t1.createTime,t1.content,t1.cover,t1.type ,t1.isDisable,t1.orderNumber
+      from t_group_news  t1  
+      <where>
+         <if test="groupCode!=null"> and    
+			t1.groupCode =#{groupCode}  
+	</if>
+         <if test="id!=null"> and    
+			t1.id =#{id}  
+	</if>
+         <if test="type!=null"> and    
+			t1.type =#{type}  
+	</if>
+         <if test="isDisable!=null"> and    
+			t1.isDisable =#{isDisable}  
+	</if>
+         <if test="startDt!=null"/>
+         <if test="endDt!=null"/>
+         <if test="id!=null"> and    
+	       t1.id=#{id} 
+	</if>
+      </where>
+	order by case when t1.orderNumber is null then 1 else 0 end , t1.orderNumber
+	
+      <trim prefix="" suffixOverrides=",">
+         <if test="startNum!=null">null 
+     	    #{startNum}
+     	 </if>
+         <if test="endNum!=null">null 
+     	 	,#{endNum}
+     	 </if>
+      </trim>
+   </select>
+   <select id="getNewsCount" parameterType="newsBean" resultType="Long">
+	      select count(t1.id) from t_group_news  t1
+	    
+      <where>
+         <if test="groupCode!=null"> and    
+			t1.groupCode =#{groupCode}  
+	</if>
+         <if test="id!=null"> and    
+			t1.id =#{id}  
+	</if>
+         <if test="type!=null"> and    
+			t1.type =#{type}  
+	</if>
+         <if test="isDisable!=null"> and    
+			t1.isDisable =#{isDisable}  
+	</if>
+         <if test="startDt!=null"/>
+         <if test="endDt!=null"/>
+         <if test="id!=null"> and    
+	       t1.id=#{id} 
+	</if>
+      </where>
+   </select>
+   <delete id="deleteNews">
+		delete from  t_group_news
+		where id in
+      <foreach open="(" close=")" separator="," item="item">#{item}</foreach>
+   </delete>
+   <update id="updateNews" parameterType="newsBean">
+    update  t_group_news
+    
+      <set>
+         <if test="title!=null"> ,    
+			  title = #{title}  
+	   </if>
+         <if test="type!=null"> ,    
+			  type = #{type}  
+	   </if>
+         <if test="content!=null"> ,    
+			  content = #{content}  
+	   </if>
+         <if test="cover!=null"> ,  
+			  cover = #{cover}  
+	  </if>
+         <if test="isDisable!=null"> ,    
+			  isDisable = #{isDisable}  
+	   </if>
+         <if test="orderNumber!=null"> ,    
+			  orderNumber = #{orderNumber}  
+	   </if>
+      </set>
+     where id = #{id}
+  
+   </update>
+   <update id="updateNewsAboutHotel" parameterType="newsBean">
+    update  t_group_news  set isDisable = 0  
+     where   groupCode = #{groupCode}   
+      <if test="type!=null"> and    
+			  type = #{type}  
+	   </if>
+   </update>
+   <insert id="insertNews" parameterType="newsBean">
+     INSERT INTO `t_group_news` (`title`,  `groupCode`, `createTime`, `content`, `cover`, `type`, `isDisable`, `orderNumber`)
+      VALUES (#{title}, #{groupCode},now(), #{content}, #{cover}, #{type}, #{isDisable}, #{orderNumber});</insert>
+   <select id="getNews" parameterType="Integer" resultType="newsBean">
+       select t1.id,t1.title,t1.groupCode,t1.createTime,t1.content,
+       t1.cover,t1.type ,t1.isDisable,t1.orderNumber from t_group_news  t1  where id=#{id}</select>
+   <select id="getHotelGroupList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+	   select  
+		t1.groupCode,t1.groupName,t1.groupPhone,t1.principal,t1.principalPhone,t1.url,t1.createTime
+		,(select count(1) from thotel s1 where s1.groupCode=t1.groupCode GROUP BY s1.groupCode) as num 
+		FROM
+		tgroup t1 
+ 	
+      <where>
+         <if test="groupCode!=null"> and    
+			t1.groupCode =#{groupCode}  
+	</if>
+         <if test="groupName!=null"> and    
+			t1.groupName like  CONCAT('%',#{groupName},'%')  
+	</if>
+         <if test="groupPhone!=null"> and    
+			t1.groupPhone like  CONCAT('%',#{groupPhone},'%')  
+	</if>
+      </where>
+	order by t1.groupCode
+	 
+      <isNotNull property="limitClauseStart">
+        	limit $limitClauseStart$, $limitClauseCount$
+      </isNotNull>
+   </select>
+   <select id="getHotelGroupListCount" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+   select  
+	1 
+	FROM
+	tgroup t1 
+      <where>
+         <if test="groupCode!=null"> and    
+			t1.groupCode =#{groupCode}  
+	</if>
+         <if test="groupName!=null"> and    
+			t1.groupName like  CONCAT('%',#{groupName},'%')  
+	</if>
+         <if test="groupPhone!=null"> and    
+			t1.groupPhone like  CONCAT('%',#{groupPhone},'%')  
+	</if>
+      </where>
+	order by t1.groupCode
+	
+   </select>
+   <select id="getHotelGroup" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+   select
+	t1.groupCode,t1.groupName,t1.groupPhone,t1.principal,t1.principalPhone,t1.url
+	,t2.hotelName,t2.hotelCode
+	FROM
+	tgroup t1  left join thotel t2
+	on t1.groupCode=t2.groupCode 
+      <where>
+         <if test="groupCode!=null"> and    
+			t1.groupCode =#{groupCode}  
+	</if>
+      </where>
+	order by t1.groupCode
+	
+   </select>
+   <delete id="deleteGroup">
+    delete from tgroup
+    where groupCode=#{groupcode}</delete>
+   <delete id="deleteHotelGroup" parameterType="String">
+    delete from tgrouphotel
+    where groupCode = #{0}</delete>
+   <insert id="saveGroup" parameterType="groupBean">
+    insert into tgroup (groupCode, groupName, createTime, creater, groupPhone, principal, url,
+      principalPhone,ischain)
+    values (#{groupcode}, #{groupname}, now(),
+      #{creater}, #{groupphone}, #{principal}, #{url},
+      #{principalphone},#{ischain})</insert>
+   <update id="updateGroup" parameterType="groupBean">
+    update tgroup
+    
+      <set>
+         <isNotNull prepend="," property="groupcode">
+        groupCode = #groupcode#
+      </isNotNull>
+         <isNotNull prepend="," property="groupname">
+        groupName = #groupname#
+      </isNotNull>
+         <isNotNull prepend="," property="createtime">
+        createTime = #createtime#
+      </isNotNull>
+         <isNotNull prepend="," property="creater">
+        creater = #creater#
+      </isNotNull>
+         <isNotNull prepend="," property="groupphone">
+        groupPhone = #groupphone#
+      </isNotNull>
+         <isNotNull prepend="," property="principal">
+        principal = #principal#
+      </isNotNull>
+         <isNotNull prepend="," property="url">
+        url = #url#
+      </isNotNull>
+         <isNotNull prepend="," property="principalphone">
+        principalPhone = #principalphone#
+      </isNotNull>
+         <isNotNull prepend="," property="introduction">
+        introduction = #introduction#
+      </isNotNull>
+         <isNotNull prepend="," property="position">
+        position = #position#
+      </isNotNull>
+         <isNotNull prepend="," property="joinPolicy">
+        joinPolicy = #joinPolicy#
+      </isNotNull>
+      </set>
+    where groupCode = #{groupcode}
+  
+   </update>
+   <select id="ws_getHotelGroupListCount" parameterType="groupBean" resultType="long">
+   select  
+	 count(distinct t1.groupCode)  
+	FROM
+	tgroup t1 
+	left join thotel t2
+	on t1.groupCode=t2.groupCode 
+      <where>
+         <if test="groupcode!=null"> and    
+			t1.groupCode =#{groupcode}  
+	</if>
+         <if test="groupname!=null"> and    
+			t1.groupName like  CONCAT('%',#{groupname},'%') 
+	</if>
+         <if test="groupphone!=null"> and    
+			t1.groupPhone like CONCAT('%',#{groupphone},'%')  
+	</if>
+         <if test="versions!=null"> and   
+			t1.groupCode
+			
+			 
+			  REGEXP '^Link' 
+	
+            <isEqual property="versions" compareValue="1">NOT</isEqual> and   
+			t1.groupCode
+			
+			 
+			  REGEXP '^Link' 
+	
+         </if>
+         <if test="minhotelname!=null"> and    
+			t2.hotelName like CONCAT('%',#{minhotelname},'%')  
+	</if>
+      </where>
+   </select>
+   <select id="ws_getHotelGroup" parameterType="groupBean" resultType="groupBean">
+   select 
+	t1.groupCode,
+	t1.groupName,
+	t1.groupPhone,
+	t1.principal,
+	t1.principalPhone,
+	t1.url,
+	t2.hotelName,
+	t2.hotelCode,
+	(select count(1) from thotel s1 where s1.groupCode=t1.groupCode GROUP BY s1.groupCode) as num
+	FROM
+	tgroup t1  left join thotel t2
+	on t1.groupCode=t2.groupCode 
+ 	
+      <where>
+         <if test="groupcode!=null"> and    
+			t1.groupCode =#{groupcode}  
+	</if>
+         <if test="groupname!=null"> and    
+			t1.groupName like  CONCAT('%',#{groupname},'%') 
+	</if>
+         <if test="groupphone!=null"> and    
+			t1.groupPhone like CONCAT('%',#{groupphone},'%')  
+	</if>
+         <if test="versions!=null"> and   
+			t1.groupCode
+			
+			 
+			  REGEXP 'Link' 
+	
+            <isEqual property="versions" compareValue="0">NOT</isEqual> and   
+			t1.groupCode
+			
+			 
+			  REGEXP 'Link' 
+	
+         </if>
+         <if test="minhotelname!=null"> and    
+			t2.hotelName like CONCAT('%',#{minhotelname},'%')  
+	</if>
+      </where>
+	group by groupCode 
+		order by num desc
+      <if test="startNum!=null">null 
+     	limit  #{startNum} ,#{endNum}
+   </if>
+   </select>
+   <select id="ws_getHotelGroupList" parameterType="groupBean" resultType="java.util.HashMap">
+   select
+	t1.groupCode,t1.groupName,t1.groupPhone,t1.principal,t1.principalPhone,t1.url
+	,t2.hotelName,t2.hotelCode
+	FROM
+	tgroup t1  left join thotel t2
+	on t1.groupCode=t2.groupCode 
+      <where>
+         <if test="groupcode!=null"> and    
+			t1.groupCode =#{groupcode}
+	</if>
+      </where>
+	order by t1.groupCode
+	
+   </select>
+   <insert id="ws_saveGroup" parameterType="groupBean">
+     insert into tgroup (groupCode, groupName, createTime, creater, groupPhone, principal, url,
+      principalPhone)
+      values (#{groupcode}, #{groupname}, #{createtime},
+      #{creater}, #{groupphone}, #{principal}, #{url},
+      #{principalphone})
+    </insert>
+   <select id="getGroupList" parameterType="groupBean" resultType="groupBean">
+    select t1.id,t1.groupCode,t1.groupName,t1.groupPhone,t1.principal,t1.principalPhone,t1.url,t1.createTime,t1.creater,t1.updatefile_id,t1.sVersion_no,
+    t1.introduction,t1.position,t1.joinPolicy,t1.ischain
+    FROM tgroup t1 
+ 	
+      <where>
+         <if test="groupcode!=null"> and    
+			t1.groupCode =#{groupcode}  
+	</if>
+         <if test="updatefile_id!=null"> and    
+			t1.updatefile_id =#{updatefile_id}  
+	</if>
+         <if test="ischain!=null"> and    
+			t1.ischain =#{ischain}  
+	</if>
+      </where>
+   </select>
+   <select id="ws_getHotelGroup_choose" parameterType="groupBean" resultType="groupBean">
+  select * from(
+   select 
+	t1.groupCode,
+	t1.groupName,
+	t1.groupPhone,
+	t1.principal,
+	t1.principalPhone,
+	t1.url,
+	t2.hotelName,
+	t2.hotelCode,
+	(select count(1) from thotel s1 where s1.groupCode=t1.groupCode GROUP BY s1.groupCode) as num
+	FROM
+	tgroup t1  left join thotel t2
+	on t1.groupCode=t2.groupCode 
+	) a
+    where num is not null
+      <if test="groupcode!=null"> and    
+			groupCode =#{groupcode}  
+	</if>
+      <if test="groupname!=null"> and    
+			groupName like  CONCAT('%',#{groupname},'%') 
+	</if>
+      <if test="groupphone!=null"> and    
+			groupPhone like CONCAT('%',#{groupphone},'%')  
+	</if>
+      <if test="versions!=null"> and   
+			groupCode
+			
+			 
+			  REGEXP '^Link' 
+	
+         <isEqual property="versions" compareValue="1">NOT</isEqual> and   
+			groupCode
+			
+			 
+			  REGEXP '^Link' 
+	
+      </if>
+      <if test="minhotelname!=null"> and    
+			hotelName like CONCAT('%',#{minhotelname},'%')  
+	</if>
+	
+	group by groupCode 
+		order by num desc
+	  
+      <if test="startNum!=null">null 
+     	limit  #{startNum} ,#{endNum}
+   </if>
+   </select>
+   <select id="ws_getHotelGroupListCountChoose" parameterType="groupBean" resultType="long">
+    select count(DISTINCT groupCode) from(
+   select 
+	t1.groupCode,
+	t1.groupName,
+	t1.groupPhone,
+	t1.principal,
+	t1.principalPhone,
+	t1.url,
+	t2.hotelName,
+	t2.hotelCode,
+	(select count(1) from thotel s1 where s1.groupCode=t1.groupCode GROUP BY s1.groupCode) as num
+	FROM
+	tgroup t1  left join thotel t2
+	on t1.groupCode=t2.groupCode 
+	) a
+    where num is not null
+      <if test="groupcode!=null"> and    
+			groupCode =#{groupcode}  
+	</if>
+      <if test="groupname!=null"> and    
+			groupName like  CONCAT('%',#{groupname},'%') 
+	</if>
+      <if test="groupphone!=null"> and    
+			groupPhone like CONCAT('%',#{groupphone},'%')  
+	</if>
+      <if test="versions!=null"> and   
+			groupCode
+			
+			 
+			  REGEXP '^Link' 
+	
+         <isEqual property="versions" compareValue="1">NOT</isEqual> and   
+			groupCode
+			
+			 
+			  REGEXP '^Link' 
+	
+      </if>
+      <if test="minhotelname!=null"> and    
+			hotelName like CONCAT('%',#{minhotelname},'%')  
+	</if>
+   </select>
+</mapper>

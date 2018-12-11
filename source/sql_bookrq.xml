@@ -1,0 +1,733 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd" >
+<sqlMap namespace="bookrq">
+<cacheModel id="order-cache" type="LRU"  readOnly="false" >
+	     <flushInterval hours="1"/>
+	     <property name="size" value="500" />
+</cacheModel>
+		
+	<typeAlias alias="bookRQBean" type="com.jte.ali.model.bookrq.BookRQ" />
+	<resultMap id="bookRQResult" class="bookRQBean">
+		<result column="id" property="id"  />
+		<result column="orderId" property="orderId"  />
+		<result column="orderTime" property="orderTime"/>
+		<result column="taoBaoOrderId" property="taoBaoOrderId"  />
+		<result column="taoBaoHotelId" property="taoBaoHotelId"  />
+		<result column="hotelId" property="hotelId"  />
+		<result column="taoBaoRoomTypeId" property="taoBaoRoomTypeId"  />
+		<result column="roomTypeId" property="roomTypeId" />
+		<result column="taoBaoRatePlanId" property="taoBaoRatePlanId" />
+		<result column="ratePlanCode" property="ratePlanCode"  />
+		<result column="taoBaoGid" property="taoBaoGid"  />
+		<result column="checkIn" property="checkIn"  />
+		<result column="checkOut" property="checkOut" />
+		<result column="earliestArriveTime" property="earliestArriveTime" />
+		<result column="latestArriveTime" property="latestArriveTime" />
+		<result column="roomNum" property="roomNum" />
+		<result column="totalPrice" property="totalPrice" />
+		<result column="currency" property="currency" />
+		<result column="orderStatus" property="orderStatus" />
+		<result column="contactName" property="contactName" />
+		<result column="paymentType" property="paymentType" />
+		<result column="contactTel" property="contactTel" />
+		<result column="comment" property="comment" />
+		<result column="extensions" property="extensions" />
+		<result column="cancelReason" property="cancelReason" />
+		<result column="offlineTaoBaoOrderId" property="offlineTaoBaoOrderId" />
+		<result column="createTime" property="createTime" />
+		<result column="otherFee" property="otherFee" />
+		<result column="passFlag" property="passFlag" />
+	</resultMap>
+	<resultMap class="java.util.HashMap" id="queryOrderGroupBy">
+		<result property="groups" column="groups" javaType="Long"/>
+		<result property="count" column="count" javaType="Long"/>
+	</resultMap>
+	<select id="getBookRQId" parameterClass="bookRQBean" resultClass="long">
+		SELECT id from t_ali_bookrq t1
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="taoBaoOrderId">  
+			      taoBaoOrderId = #taoBaoOrderId#       
+			</isNotEmpty>  
+		</dynamic>	
+	</select>
+	
+	<!-- 获取所有已预订房  -->
+	<select id="getBookRQInfo" parameterClass="bookRQBean"  resultClass="bookRQBean">
+		SELECT id,
+			orderId,orderTime,taoBaoOrderId,taoBaoHotelId, hotelId,taoBaoRoomTypeId,roomTypeId,taoBaoRatePlanId,ratePlanCode,
+		    taoBaoGid,checkIn,checkOut,earliestArriveTime,latestArriveTime,roomNum,totalPrice,currency,orderStatus,contactName,paymentType,contactTel,
+		    comment,extensions,cancelReason,offlineTaoBaoOrderId,createTime,otherFee,passFlag
+		from t_ali_bookrq t1
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="id">  
+			      id = #id#
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="orderId">  
+			      orderId = #orderId#       
+			</isNotEmpty>  
+			<isNotEmpty prepend="and" property="taoBaoOrderId">  
+			      taoBaoOrderId = #taoBaoOrderId#       
+			</isNotEmpty>
+		</dynamic>	
+	</select>
+	
+	<!-- 获取所有已预订房  -->
+	<select id="getAlreadyOrderRoomCount" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+		t1.roomTypeId,
+		sum(t1.RoomNum) count
+		FROM
+		t_ali_bookrq t1
+		<dynamic prepend=" where ">
+			<isNotNull prepend="and" property="hotelCode">
+			<![CDATA[  t1.hotelId = #hotelCode# ]]>
+			</isNotNull>
+			<isNotNull prepend="and" property="orderState">
+			<![CDATA[  t1.orderStatus in ($orderState$)]]>
+			</isNotNull>
+			<isNotNull prepend="and" property="roomTypeCode">
+			<![CDATA[  t1.roomTypeId in ($roomTypeCode$)]]>
+			</isNotNull>
+			<isNotNull prepend="and" property="orderTime">
+			  <![CDATA[t1.checkIn<=#orderTime# and t1.checkOut > #orderTime#]]> 
+			</isNotNull>
+		</dynamic>
+		group by t1.roomTypeId
+	</select>
+	
+	<insert id="saveBookRQ" parameterClass="bookRQBean" >
+	    insert into t_ali_bookrq(orderId,orderTime,taoBaoOrderId,taoBaoHotelId, hotelId,taoBaoRoomTypeId,roomTypeId,taoBaoRatePlanId,ratePlanCode,
+		    taoBaoGid,checkIn,checkOut,earliestArriveTime,latestArriveTime,roomNum,totalPrice,currency,orderStatus,contactName,paymentType,contactTel,
+		    comment,extensions,cancelReason,createTime)
+	    values (#orderId#,#orderTime#,#taoBaoOrderId#,#taoBaoHotelId#, #hotelId#,#taoBaoRoomTypeId#,#roomTypeId#,#taoBaoRatePlanId#,#ratePlanCode#,
+	    #taoBaoGid#,#checkIn#,#checkOut#,#earliestArriveTime#,#latestArriveTime#,#roomNum#,#totalPrice#,#currency#,#orderStatus#,#contactName#,#paymentType#,
+	    #contactTel#,#comment#,#extensions#,#cancelReason#,#createTime#)
+    </insert>
+    
+    
+    <update id="updateBookRqOrderStatus" parameterClass="bookRQBean" >      
+     update t_ali_bookrq
+	    <dynamic prepend="set" >
+	      <isNotNull prepend="," property="orderStatus" >
+	        orderStatus = #orderStatus#
+	      </isNotNull>
+	      <isNotNull prepend="," property="roomTypeId" >
+	        roomTypeId = #roomTypeId#
+	      </isNotNull>
+	      <isNotNull prepend="," property="offlineTaoBaoOrderId" >
+	        offlineTaoBaoOrderId = #offlineTaoBaoOrderId#
+	      </isNotNull>
+	    </dynamic>
+    	where id = #id#
+	</update>
+	
+	<select id="getAliBookrqCheckCount" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+		roomTypeId roomTypeCode,
+		sum(roomNum) count
+		FROM
+		t_ali_bookrq where hotelId=#hotelId# 
+		<isNotNull prepend="and" property="orderStatus">
+		<![CDATA[  $orderStatus$]]>
+		</isNotNull>
+		<isNotNull prepend="and" property="roomTypeId">
+		<![CDATA[  roomTypeId = #roomTypeId#]]>
+		</isNotNull>
+		 <isNotNull prepend=" and " property="startTime">
+		 <![CDATA[  createTime >= #startTime#  ]]> 
+		</isNotNull>
+		<isNotNull prepend=" and " property="endTime">
+		 <![CDATA[  createTime <= #endTime#  ]]>
+		</isNotNull>
+		<isNotNull prepend=" and " property="checkinStart">
+		 <![CDATA[t1.checkIn <= #checkinStart# and t1.checkIn < #checkinEnd#]]> 
+		</isNotNull>
+		<isNotNull prepend=" and " property="checkStartTime">
+		 <![CDATA[checkIn <= #checkStartTime#]]>
+		</isNotNull>
+		<isNotNull prepend=" and " property="checkEndTime">
+		 <![CDATA[checkOut >= #checkEndTime#]]>
+		</isNotNull>
+		group by roomTypeId
+	</select>
+	
+	<select id="getAliOrderList" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+		t1.roomtypeId roomTypeCode,
+		t1.roomnum roomCount,
+		t1.totalPrice/100 price,
+		t1.checkIn indate,
+		t1.checkOut outdate,
+		case t1.orderStatus when '4' then '1' when '7' then '1' else '0' end flag,
+		t1.contactTel telephone,
+		t1.contactName name,
+		t1.orderStatus,
+		t1.orderid,
+		t1.createTime,
+		t1.paymentType,
+		t1.passFlag,
+		t1.hotelId,
+		t1.ratePlanCode
+		FROM
+		t_ali_bookrq t1 where t1.hotelId=#hotelId# 
+		<isNotNull prepend="and" property="orderStatus">
+		<![CDATA[ $orderStatus$]]>
+		</isNotNull>
+		<isNotNull prepend="and" property="roomTypeId">
+		<![CDATA[  t1.roomTypeId = #roomTypeId#]]>
+		</isNotNull>
+		 <isNotNull prepend=" and " property="startTime">
+		 <![CDATA[  t1.createTime >= #startTime#  ]]> 
+		</isNotNull>
+		<isNotNull prepend=" and " property="endTime">
+		 <![CDATA[  t1.createTime < #endTime#  ]]>
+		</isNotNull>
+		<isNotNull prepend=" and " property="checkinStart">
+		 <![CDATA[t1.checkIn >= #checkinStart# and t1.checkIn < #checkinEnd#]]> 
+		</isNotNull>
+		 <isNotNull prepend=" and " property="inStartTime">
+		 <![CDATA[t1.checkIn <= #inStartTime# ]]> 
+		</isNotNull>
+		<isNotNull prepend=" and " property="outStartTime">
+		 <![CDATA[t1.checkOut >= #outStartTime# ]]>
+		</isNotNull>
+	</select>
+	<!-- OTA订单数统计 -->
+	<select id="getOrderCountData" parameterClass="java.util.HashMap" resultMap="queryOrderGroupBy">
+		SELECT
+			count(1) AS count
+		<isEqual prepend="," property="groupBy" compareValue="QUARTER">
+			QUARTER($columnName$) AS groups
+		</isEqual>
+		<isEqual prepend="," property="groupBy" compareValue="MONTH">
+			MONTH($columnName$) AS groups
+		</isEqual>
+		<isEmpty prepend="," property="groupBy">
+			$columnName$ >'1-1-1' as groups
+		</isEmpty>
+		FROM
+			$tableName$
+		WHERE 1=1 and $columnName$ is not null
+		<isNotNull prepend="AND" property="startTime">
+			$columnName$ BETWEEN #startTime# AND #endTime#
+		</isNotNull>
+		<isNotNull prepend="AND" property="hotelCode">
+			hotelCode = #hotelCode#
+		</isNotNull>
+		<isNotNull prepend="AND" property="source">
+			source = #source#
+		</isNotNull>
+		<!-- 微订房有效数据查询 -->
+		<isEqual compareValue="torderguest" prepend="AND" property="tableName">
+			 (channel='1' or channel='微订房')
+				 and orderState='0'
+		</isEqual>
+		<!-- 去哪儿有效数据查询 -->
+		<isEqual compareValue="t_qhh_orderinfo" prepend="AND" property="tableName">
+			  statusCode in ('1','2','6','7','8','9')
+		</isEqual>
+		<!-- 阿里信用住有效数据查询 -->
+		<isEqual compareValue="t_ali_bookrq" prepend="AND" property="tableName">
+			  orderStatus in ('1','5','9')
+		</isEqual>
+		
+		<isNotEmpty prepend="GROUP BY" property="groupBy">
+			groups
+		</isNotEmpty>
+	</select>
+	
+	<select id="getAliBookrqCheckCountofAll" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+		sum(roomNum) count
+		FROM
+		t_ali_bookrq where hotelId=#hotelId# 
+		<isNotNull prepend="and" property="orderStatus">
+		<![CDATA[ $orderStatus$]]>
+		</isNotNull>
+		<isNotNull prepend="and" property="roomTypeId">
+		<![CDATA[  roomTypeId = #roomTypeId#)]]>
+		</isNotNull>
+		 <isNotNull prepend=" and " property="startTime">
+		 <![CDATA[  createTime >= #startTime#]]> 
+		</isNotNull>
+		<isNotNull prepend=" and " property="endTime">
+		 <![CDATA[  createTime < #endTime#  ]]>
+		</isNotNull>
+		<isNotNull prepend=" and " property="inStartTime">
+		 <![CDATA[ checkIn <=#inStartTime#]]>
+		</isNotNull>
+		<isNotNull prepend=" and " property="outStartTime">
+		 <![CDATA[ checkOut >= #checkEndTime#]]>
+		</isNotNull>
+	</select>
+	
+	<select id="getAliBookrqCount" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		SELECT
+		count(1) count
+		FROM
+		t_ali_bookrq where hotelId=#hotelId# 
+		<isNotNull prepend="and" property="orderStatus">
+		<![CDATA[  $orderStatus$]]>
+		</isNotNull>
+		<isNotNull prepend="and" property="roomTypeId">
+		<![CDATA[  roomTypeId = #roomTypeId#]]>
+		</isNotNull>
+		 <isNotNull prepend=" and " property="startTime">
+		 <![CDATA[  createTime >= #startTime#]]> 
+		</isNotNull>
+		<isNotNull prepend=" and " property="endTime">
+		 <![CDATA[  createTime < #endTime#  ]]>
+		</isNotNull>
+		<isNotNull prepend=" and " property="checkinStart">
+		 <![CDATA[ checkIn >= #checkinStart# and checkIn <= #checkinEnd#]]> 
+		</isNotNull>
+		<isNotNull prepend=" and " property="inStartTime">
+		 <![CDATA[ checkIn <=#inStartTime# ]]>
+		</isNotNull>
+		<isNotNull prepend=" and " property="outStartTime">
+		 <![CDATA[ checkOut >= #checkEndTime#]]>
+		</isNotNull>
+		<isNotNull prepend=" and " property="statType">
+			<![CDATA[ $statType$]]>
+		</isNotNull>
+	</select>
+	
+	
+	
+	<!-- 查询列表 ，获取所有已预订房  -->
+	<select id="getBookRQInfos" parameterClass="bookRQBean"  resultClass="bookRQBean">
+		SELECT id,
+			orderId,orderTime,taoBaoOrderId,taoBaoHotelId, hotelId,taoBaoRoomTypeId,roomTypeId,taoBaoRatePlanId,ratePlanCode,
+		    taoBaoGid,checkIn,checkOut,earliestArriveTime,latestArriveTime,roomNum,totalPrice,currency,orderStatus,contactName,paymentType,contactTel,
+		    comment,extensions,cancelReason,offlineTaoBaoOrderId,createTime,otherFee,practicalCheckIn,practicalCheckOut,practicalRoomFee,source
+		from t_ali_bookrq t1
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="id">  
+			      id = #id#
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="orderId">  
+			      orderId = #orderId#       
+			</isNotEmpty>  
+			<isNotEmpty prepend="and" property="taoBaoOrderId">  
+			      taoBaoOrderId = #taoBaoOrderId#       
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="hotelId">  
+			      hotelId = #hotelId#       
+			</isNotEmpty>  
+			<isNotEmpty prepend="and" property="orderStatus">  
+			      orderStatus = #orderStatus#       
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="startDate"> 
+				<![CDATA[ createTime >= #startDate# ]]> 
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="endDate"> 
+				<![CDATA[  createTime <= #endDate# ]]> 
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="paymentType"> 
+				 paymentType = #paymentType#
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="contactName"> 
+				 contactName like '%$contactName$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="contactTel"> 
+				 contactTel like '%$contactTel$%'  
+			</isNotEmpty>
+		</dynamic>	
+			order by createTime desc
+		<dynamic prepend="limit" >
+     	 <isNotEmpty property="startNum" >
+     	    #startNum#
+     	 </isNotEmpty>
+     	 <isNotEmpty property="endNum" >
+     	 	,#endNum#
+     	 </isNotEmpty>
+     	</dynamic>
+	</select>
+	
+	<select id="getBookRQInfosBycreatetime" parameterClass="bookRQBean"  resultClass="bookRQBean">
+		select  hotelId, count(*) as totalcount
+		from t_ali_bookrq t1 where t1.orderStatus !='4' and
+		<![CDATA[ DATE_SUB(CURDATE(), INTERVAL 3 DAY) <= t1.createTime]]> group by hotelId
+	</select> 
+	
+	<select id="getBookRQInfosCount" parameterClass="bookRQBean"  resultClass="long">
+		select count(*) from t_ali_bookrq t1
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="id">  
+			      id = #id#
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="orderId">  
+			      orderId = #orderId#       
+			</isNotEmpty>  
+			<isNotEmpty prepend="and" property="taoBaoOrderId">  
+			      taoBaoOrderId = #taoBaoOrderId#       
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="hotelId">  
+			      hotelId = #hotelId#       
+			</isNotEmpty>  
+			<isNotEmpty prepend="and" property="orderStatus">  
+			      orderStatus = #orderStatus#       
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="startDate"> 
+				<![CDATA[ createTime >= #startDate# ]]> 
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="endDate"> 
+				<![CDATA[  createTime <= #endDate# ]]> 
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="paymentType"> 
+				 paymentType = #paymentType#
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="contactName"> 
+				 contactName like '%$contactName$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="contactTel"> 
+				 contactTel like '%$contactTel$%'  
+			</isNotEmpty>
+		</dynamic>	
+	</select>
+	
+	
+	
+	
+	
+	<update id="updateBookRq" parameterClass="bookRQBean" >  
+     update t_ali_bookrq
+	    <dynamic prepend="set" >
+	      <isNotNull prepend="," property="orderStatus" >
+	        orderStatus = #orderStatus#
+	      </isNotNull>
+	      <isNotNull prepend="," property="cancelReason" >
+	        cancelReason = #cancelReason#
+	      </isNotNull>
+	      <isNotNull prepend="," property="otherFee" >
+	        otherFee = #otherFee#
+	      </isNotNull>
+	      <isNotNull prepend="," property="practicalCheckIn" >
+	        practicalCheckIn = #practicalCheckIn#
+	      </isNotNull>
+	      <isNotNull prepend="," property="practicalCheckOut" >
+	        practicalCheckOut = #practicalCheckOut#
+	      </isNotNull>
+	      <isNotNull prepend="," property="practicalRoomFee" >
+	        practicalRoomFee = #practicalRoomFee#
+	      </isNotNull>
+	      <isNotNull prepend="," property="repealReason" >
+	        repealReason = #repealReason#
+	      </isNotNull>
+	      <isNotNull prepend="," property="comment" >
+	        comment = #comment#
+	      </isNotNull>
+	      <isNotNull prepend="," property="roomTypeId" >
+	        roomTypeId = #roomTypeId#
+	      </isNotNull>
+	    </dynamic>
+    	where id = #id#
+	</update>
+	<update id="updateBookRqpassflag" parameterClass="bookRQBean" >
+	 update t_ali_bookrq  
+	 <dynamic prepend="set" >
+	      <isNotNull prepend="," property="passFlag" >
+	        passFlag = #passFlag#, passTime = now()
+	      </isNotNull>
+	      </dynamic>
+	   where orderId=#orderId#
+	</update>
+	
+	<!-- 酒店代码模糊查询订单数量 -->
+	<select id="getBookRQInfosCountByHotelCodes" parameterClass="bookRQBean"  resultClass="long">
+		select count(*)  from  t_ali_bookrq t1  left join thotel  ho on t1.hotelId=ho.hotelCode
+		<dynamic prepend="where">
+		  <isNotEmpty prepend="and" property="hotelName">  
+			      hotelName  like  '%$hotelName$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="id">  
+			      id = #id#
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="orderId">  
+			      orderId like '%$orderId$%'       
+			</isNotEmpty>  
+			<isNotEmpty prepend="and" property="taoBaoOrderId">  
+			      taoBaoOrderId = #taoBaoOrderId#       
+			</isNotEmpty>
+			
+			<isNotEmpty prepend="and" property="orderStatus">  
+			      orderStatus = #orderStatus#       
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="startDate"> 
+				<![CDATA[ t1.createTime >= #startDate# ]]> 
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="endDate"> 
+				<![CDATA[  t1.createTime <= #endDate# ]]> 
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="paymentType"> 
+				 paymentType = #paymentType#
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="contactName"> 
+				 contactName like '%$contactName$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="contactTel"> 
+				 contactTel like '%$contactTel$%'  
+			</isNotEmpty>
+		</dynamic>	
+	</select>
+	
+	
+	<!-- 酒店代码模糊查询订单信息 -->
+	<select id="getBookrqListInfo" parameterClass="bookRQBean"  resultClass="bookRQBean">
+		SELECT hotelName, t1.id,
+			orderId,orderTime,taoBaoOrderId,taoBaoHotelId, hotelId,taoBaoRoomTypeId,roomTypeId,taoBaoRatePlanId,ratePlanCode,
+		    taoBaoGid,checkIn,checkOut,earliestArriveTime,latestArriveTime,roomNum,totalPrice,currency,orderStatus,contactName,paymentType,contactTel,
+		    comment,extensions,cancelReason,offlineTaoBaoOrderId,t1.createTime,otherFee,practicalCheckIn,practicalCheckOut,practicalRoomFee
+		  from t_ali_bookrq t1  left join thotel  ho on t1.hotelId=ho.hotelCode
+		<dynamic prepend="where">
+		    <isNotEmpty prepend="and" property="hotelName">  
+			      ho.hotelName  like  '%$hotelName$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="id">  
+			      id = #id#
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="orderId">  
+			      orderId like '%$orderId$%'       
+			</isNotEmpty>  
+			<isNotEmpty prepend="and" property="taoBaoOrderId">  
+			      taoBaoOrderId = #taoBaoOrderId#       
+			</isNotEmpty>
+			
+			<isNotEmpty prepend="and" property="orderStatus">  
+			      orderStatus = #orderStatus#       
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="startDate"> 
+				<![CDATA[ t1.createTime >= #startDate# ]]> 
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="endDate"> 
+				<![CDATA[  t1.createTime <= #endDate# ]]> 
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="paymentType"> 
+				 paymentType = #paymentType#
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="contactName"> 
+				 contactName like '%$contactName$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="contactTel"> 
+				 contactTel like '%$contactTel$%'  
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="errorFlag"> 
+			<![CDATA[ ho.newVersion='1' and DATE_ADD(t1.createTime,INTERVAL 5 MINUTE) < now() and (passFlag!='1' or passFlag is null) and ho.dealFlag='1' ]]> 
+			</isNotEmpty>
+		</dynamic>	
+			order by  t1.createTime desc
+		<dynamic prepend="limit" >
+     	 <isNotEmpty property="startNum" >
+     	    #startNum#
+     	 </isNotEmpty>
+     	 <isNotEmpty property="endNum" >
+     	 	,#endNum#
+     	 </isNotEmpty>
+     	</dynamic>
+	</select>
+	
+	
+	<!-- 按年统计 -->
+	<select id="getAliOrderCollectByYear"  resultClass="java.util.HashMap">
+	SELECT count(*) count ,SUM(totalPrice) price,source,orderStatus,left(createTime,4) createTime from  t_ali_bookrq 
+	group by source,orderStatus,left(createTime,4)  order by source ,left(createTime,4) 
+	</select>
+	
+	<!-- 按月统计 -->
+	<select id="getAliOrderCollectByMonth" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	SELECT count(*) count ,SUM(totalPrice) price,source,orderStatus,left(createTime,7) createTime from  t_ali_bookrq  where 1=1
+	 <isNotNull prepend="and" property="startDate">
+	    <![CDATA[ createTime >= #startDate# ]]> 
+	 </isNotNull>
+	 <isNotNull prepend="and" property="endDate">
+	    <![CDATA[ createTime <= #endDate# ]]> 
+	 </isNotNull>
+    group by source,orderStatus,left(createTime,7) 
+    order by left(createTime,7)
+	</select>
+	
+	<!-- 按时间段统计 -->
+	<select id="getAliOrderCollectByTimeBetween" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	SELECT count(*) count ,SUM(totalPrice) price,source,orderStatus from  t_ali_bookrq   where 1=1
+	 <isNotNull prepend="and" property="startDate">
+	    <![CDATA[ createTime >= #startDate# ]]> 
+	 </isNotNull>
+	 <isNotNull prepend="and" property="endDate">
+	    <![CDATA[ createTime <= #endDate# ]]> 
+	 </isNotNull>
+	 group by source,orderStatus
+	 order by source,orderStatus 
+	</select>
+	
+	<!-- 按机构统计信用住订单数 -->
+	<select id="getSumBookRQOrder" parameterClass="bookRQBean"  resultClass="java.util.HashMap" cacheModel="order-cache">
+		SELECT count(t1.id) count,IFNULL(SUM(t1.totalPrice),0)/100 price
+		from t_ali_bookrq t1
+		left join thotel t2 on t1.hotelId=t2.hotelCode
+		where 1=1 and t1.orderStatus in ('1','5','9')
+		<isNotEmpty  prepend="and" property="codeList"> 
+      	  t2.sellerId  in
+			<iterate property="codeList" open="(" close=")" conjunction=","> 
+			#codeList[]#
+			</iterate> 
+	    </isNotEmpty>
+	    <isNotEmpty  prepend="and" property="startDate"> 
+      	   <![CDATA[  t1.createTime>= #startDate#]]>
+	    </isNotEmpty>
+	    <isNotEmpty  prepend="and" property="endDate"> 
+      	   <![CDATA[  t1.createTime< #endDate#]]>
+	    </isNotEmpty>
+	</select>
+	
+	<!-- 根据酒店统计信用住订单数 -->
+	<select id="getSumBookRQOrderByHotelcode" parameterClass="bookRQBean"  resultClass="bookRQBean" cacheModel="order-cache">
+		SELECT count(t1.id) count,t1.hotelId,IFNULL(SUM(t1.totalPrice),0) price
+		from t_ali_bookrq t1
+		left join thotel t2 on t1.hotelId=t2.hotelCode
+		where 1=1 and t1.orderStatus in ('1','5','9') 
+		<isNotEmpty  prepend="and" property="codeList"> 
+      	  t2.sellerId  in
+			<iterate property="codeList" open="(" close=")" conjunction=","> 
+			#codeList[]#
+			</iterate> 
+	    </isNotEmpty>
+	    <isNotEmpty property="hotelId"  prepend="and">
+	         t1.hotelId=#hotelId#
+	    </isNotEmpty>
+	    <isNotEmpty  prepend="and" property="startDate"> 
+      	   <![CDATA[  t1.createTime>= #startDate#]]>
+	    </isNotEmpty>
+	    <isNotEmpty  prepend="and" property="endDate"> 
+      	   <![CDATA[  t1.createTime< #endDate#]]>
+	    </isNotEmpty>
+	    GROUP BY hotelId 
+	</select>
+	
+	<!-- 按酒店统计订单 -->
+	<select id="getOrderCollectByHotel" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	 select * from (
+	 select  count(t1.id) count,IFNULL(sum(t1.orderPrice),0) price,t1.statusCode status,'qhh' source,t1.hotelNo hotelcode
+	 from t_qhh_orderInfo t1  
+	 where t1.statusCode is not null
+        <isNotEmpty property="startTime" prepend="and">
+          <![CDATA[  t1.createTime >= #startTime#]]>
+        </isNotEmpty>
+        <isNotEmpty property="endTime" prepend="and">
+          <![CDATA[  t1.createTime < #endTime#]]>
+        </isNotEmpty>
+        <isNotEmpty prepend=" and " property="hotelCode">  
+      	  t1.hotelNo =#hotelCode#      
+        </isNotEmpty> 
+	 group by t1.statusCode,t1.hotelNo
+	 
+	 union all
+	 SELECT count(t1.id) count,IFNULL(SUM(t1.totalPrice),0) price,t1.orderStatus status,'xyz' source,t1.hotelId hotelcode
+	 from t_ali_bookrq t1
+	 where t1.orderStatus is not null
+	   	<isNotEmpty  prepend="and" property="startTime"> 
+      	   <![CDATA[  t1.createTime>= #startTime#]]>
+	    </isNotEmpty>
+	    <isNotEmpty  prepend="and" property="endTime"> 
+      	   <![CDATA[  t1.createTime< #endTime#]]>
+	    </isNotEmpty>	
+	    <isNotEmpty prepend=" and " property="hotelCode">  
+      	  t1.hotelId =#hotelCode#      
+        </isNotEmpty> 
+	 group by t1.orderStatus,t1.hotelId
+	 
+	 union all
+	 SELECT count(t1.id) count,IFNULL(SUM(t1.payAmt),0) price,'' status,t1.source ,t1.hotelCode hotelcode
+	 from tfacepayinfo t1 
+	 where t1.source is not null
+	     <isNotEmpty property="startTime"  prepend="and">
+	   	    <![CDATA[ t1.createTime >=#startTime#  ]]>
+	   	 </isNotEmpty>
+	   	 <isNotEmpty property="endTime" prepend="and">
+	   	  <![CDATA[ t1.createTime < #endTime#  ]]>
+	   	 </isNotEmpty>
+	   	 <isNotEmpty prepend=" and " property="hotelCode">  
+      	  t1.hotelCode =#hotelCode#      
+         </isNotEmpty> 
+	 group by t1.source,t1.hotelCode
+	 
+	 union all
+	 select count(t1.id) count,IFNULL(SUM(t1.orderPrice),0) price, t1.orderState status,'wx' source,t1.hotelCode hotelcode
+	 from torderguest t1
+	 where (t1.channel='1' or t1.channel='微订房') 
+	 and t1.orderState is not null
+	   <isNotEmpty property="startTime"  prepend="and">
+	   	   <![CDATA[ t1.orderTime >= #startTime#  ]]>
+	   	</isNotEmpty>
+	   	<isNotEmpty property="endTime"  prepend="and">
+	   	   <![CDATA[ t1.orderTime < #endTime#  ]]>
+	   	</isNotEmpty>
+	   	<isNotEmpty prepend=" and " property="hotelCode">  
+      	  t1.hotelCode =#hotelCode#      
+        </isNotEmpty> 
+	 group by t1.orderState,t1.hotelCode
+	) temp
+	<isNotEmpty property="total">
+	inner join thotel t on temp.hotelcode=t.hotelCode
+	where 1=1
+		<isNotEmpty prepend=" and " property="hotelName">  
+	      t.hotelName like '%$hotelName$%'     
+	    </isNotEmpty>
+	</isNotEmpty>
+    
+	</select>
+	
+	<!-- 统计去哪儿订单详情 -->
+	<select id="getqhhOrderInfoByCode" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	  select  count(t1.id) count,IFNULL(sum(t1.orderPrice),0) price,IFNULL(sum(prepaidAmount),0) prepaidAmount,t1.payType,t1.hotelNo hotelcode
+	  from t_qhh_orderInfo t1  
+	  where t1.statusCode is not null
+        <isNotEmpty property="startTime" prepend="and">
+          <![CDATA[  t1.createTime >= #startTime#]]>
+        </isNotEmpty>
+        <isNotEmpty property="endTime" prepend="and">
+          <![CDATA[  t1.createTime < #endTime#]]>
+        </isNotEmpty>
+        <isNotEmpty prepend=" and " property="hotelCode">  
+      	  t1.hotelNo =#hotelCode#      
+        </isNotEmpty> 
+	  group by t1.payType,t1.hotelNo
+	</select>
+	<!-- 统计信用住订单详情 -->
+	<select id="getaliOrderInfoByCode" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	  SELECT count(t1.id) count,IFNULL(SUM(t1.totalPrice),0) price,t1.source,t1.hotelId hotelcode
+	  from t_ali_bookrq t1
+	  where t1.orderStatus is not null
+	   	<isNotEmpty  prepend="and" property="startTime"> 
+      	   <![CDATA[  t1.createTime>= #startTime#]]>
+	    </isNotEmpty>
+	    <isNotEmpty  prepend="and" property="endTime"> 
+      	   <![CDATA[  t1.createTime< #endTime#]]>
+	    </isNotEmpty>	
+	    <isNotEmpty prepend=" and " property="hotelCode">  
+      	  t1.hotelId =#hotelCode#      
+        </isNotEmpty> 
+	  group by t1.source,t1.hotelId
+	</select>
+	<!-- 统计当面付、微信支付订单详情 -->
+	<select id="getfaceOrderInfoByCode" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	  SELECT count(t1.id) count,IFNULL(SUM(t1.payAmt),0) price,t1.source,t1.hotelCode hotelcode
+	  from tfacepayinfo t1 
+	  where t1.source is not null
+	     <isNotEmpty property="startTime"  prepend="and">
+	   	    <![CDATA[ t1.createTime >=#startTime#  ]]>
+	   	 </isNotEmpty>
+	   	 <isNotEmpty property="endTime" prepend="and">
+	   	  <![CDATA[ t1.createTime < #endTime#  ]]>
+	   	 </isNotEmpty>
+	   	 <isNotEmpty prepend=" and " property="hotelCode">  
+      	  t1.hotelCode =#hotelCode#      
+         </isNotEmpty> 
+	  group by t1.source,t1.hotelCode
+	</select>
+	
+</sqlMap>

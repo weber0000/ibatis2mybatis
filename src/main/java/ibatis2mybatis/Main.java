@@ -39,8 +39,8 @@ public class Main {
      * @throws FileNotFoundException 
      */
     public static void main(String[] args) {
-        String srcDirectory = "src/test/java/src";
-        String resultDirectory = "src/test/java/result";
+        String srcDirectory = "C:\\application\\workspace\\IdeaPorjects\\other-git\\java-ibatis2mybatis\\ibatis2mybatis\\source";
+        String resultDirectory = "C:\\application\\workspace\\IdeaPorjects\\other-git\\java-ibatis2mybatis\\ibatis2mybatis\\destination";
         convertDirectory(srcDirectory,resultDirectory);
     }
     
@@ -138,6 +138,8 @@ public class Main {
                 mapper.add(convertDeleteElement(srcEl));
             }else if(srcNodeName.equalsIgnoreCase("update")) {
                 mapper.add(convertUpdateElement(srcEl));
+            }else if(srcNodeName.equalsIgnoreCase("resultMap")){
+                mapper.add((Element)srcEl.clone());
             }
         }
         
@@ -166,8 +168,12 @@ public class Main {
      * @return
      */
     public static  String convertText(String srcText) {
-        
-        if(srcText.indexOf("#")>=0) {
+        //处理groupName like '%$groupName$%'   这种格式的
+        if(srcText.indexOf("%$")>0 && srcText.indexOf("$%")>0){
+            srcText= srcText.replace("'%$","$").replace("$%'","$");
+        }
+
+        if(srcText.indexOf("#")>=0 || srcText.indexOf("$")>=0) {
             
             StringBuilder sb = new StringBuilder(srcText.length());
             int beginIndex = -1;
@@ -184,11 +190,26 @@ public class Main {
                     }else {
                         beginIndex = i;  
                     }
-                    
+                }else if(srcText.charAt(i)=='$') {
+
+                    if(beginIndex!=-1) {
+                        sb.append(srcText.substring(endIndex+1, beginIndex));
+                        sb.append(" CONCAT('%',");
+                        sb.append("#{");
+                        endIndex = i;
+                        sb.append(srcText.substring(beginIndex+1, endIndex));
+                        sb.append('}');
+                        sb.append(",'%')");
+                        beginIndex= -1;
+                    }else {
+                        beginIndex = i;
+                    }
+                    System.out.println(sb);
                 }
             }
             if(endIndex<srcText.length()) {
                 sb.append(srcText.substring(endIndex+1));
+                System.out.println(sb);
             }
             return sb.toString().replace("[]", "");
         }else {
@@ -361,7 +382,10 @@ public class Main {
             if(prependAttrName.equalsIgnoreCase("where")) {
                 targetElement =DocumentHelper.createElement("where");
                 
-            }else if(prependAttrName.equalsIgnoreCase("and")) {
+            }else if(prependAttrName.equalsIgnoreCase("set")){
+                targetElement=DocumentHelper.createElement("set");
+            }
+            else if(prependAttrName.equalsIgnoreCase("and")) {
                 // TODO
             }else {
              // TODO
